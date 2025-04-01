@@ -11,20 +11,16 @@ public:
     Interpolator2D(const std::string& filename);
     ~Interpolator2D();
 
-    std::vector<double> output = {};
+    std::vector<std::vector<double>> output = {};
     size_t padding = 0;
     double pad_fill = 0;
-    size_t Ndst = 0;
 
-    std::vector<double> Bilinear();
-    std::vector<double> Bicubic();
+    void Bilinear(size_t Ndst);
+    void Bicubic();
 
-private:
-    std::vector<std::vector<double>> input = {};
+    std::vector<std::vector<double>> input= {};
     size_t Nsrc = 0;
+
 };
-
-
-
 
 #endif //INTERPOLATOR2D_H
