@@ -31,6 +31,9 @@ void Interpolator2D::Bilinear(size_t Ndst) {
         return;
     }
     output.resize(Ndst);
+    for (auto &v: output) {
+        v.resize(Ndst);
+    }
 
     for (int y = 0; y < Ndst; ++y) {
         for (int x = 0; x < Ndst; ++x) {
