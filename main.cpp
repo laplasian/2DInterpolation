@@ -2,28 +2,31 @@
 #include <iostream>
 #include <fstream>
 
-int main() {
-    Interpolator2D interpolator2D(R"(C:\Users\user\CLionProjects\2DInterpolation\map)");
-
-
-
-    for (auto &v : interpolator2D.input) {
-        for (auto &w : v) {
-            std::cout << w << " ";
-        }
-        std::cout << std::endl;
+int main(int argc, char *argv[])
+{
+    char *input_fn;
+    char *output_fn;
+    size_t Ndst;
+    if (argc == 4) {
+        input_fn = argv[1];
+        output_fn = argv[2];
+        Ndst = static_cast<size_t>(strtol(argv[3], nullptr, 10));
+    }
+    else {
+        printf("args error");
+        return -1;
     }
 
-    interpolator2D.Bilinear(5);
+    try {
+        Interpolator2D interpolator2D(input_fn);
 
-    std::fstream file("output.txt");
-    for (auto &v : interpolator2D.output) {
-        for (auto &w : v) {
-            file << w << " ";
-        }
-        file << std::endl;
+        interpolator2D.Bilinear(Ndst);
+        interpolator2D.save_result(output_fn);
+    } catch (std::exception &e) {
+        std::cout << e.what() << std::endl;
+        return -1;
     }
-    file.close();
+
 
     return 0;
 }

@@ -12,7 +12,7 @@ Interpolator2D::Interpolator2D() = default;
 Interpolator2D::Interpolator2D(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        throw std::runtime_error("Ошибка: не удалось открыть файл: " + filename);
+        throw std::runtime_error("ERROR! can`t open file: " + filename);
     }
 
     std::string line;
@@ -26,13 +26,18 @@ Interpolator2D::Interpolator2D(const std::string& filename) {
         }
         input.emplace_back(buff);
     }
+    // Проверка размеров сетки
     Nsrc = input.size();
+
+    for (auto &v : input) {
+        if (v.size() != Nsrc) {
+            throw std::runtime_error("ERROR! wrong grid dimension: " + std::to_string(Nsrc) + " != " + std::to_string(v.size()));
+        }
+    }
+
 }
 
 Interpolator2D::~Interpolator2D() = default;
-
-
-double get_new_elem();
 
 void Interpolator2D::Bilinear(size_t Ndst) {
     if (Ndst == 0) {
@@ -74,5 +79,19 @@ void Interpolator2D::Bilinear(size_t Ndst) {
 }
 
 void Interpolator2D::Bicubic() {
+}
+
+void Interpolator2D::save_result(const std::string &filename) {
+    std::fstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("ERROR! can`t open/create file: " + filename);
+    }
+    for (auto &v : output) {
+        for (auto &w : v) {
+            file << w << " ";
+        }
+        file << std::endl;
+    }
+    file.close();
 }
 

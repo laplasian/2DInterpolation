@@ -18,6 +18,8 @@ public:
     void Bilinear(size_t Ndst);
     void Bicubic();
 
+    void save_result(const std::string& filename);
+
     std::vector<std::vector<double>> input= {};
     size_t Nsrc = 0;
 
