@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <ostream>
+#include <sstream>
 
 Interpolator2D::Interpolator2D() = default;
 
@@ -15,8 +16,15 @@ Interpolator2D::Interpolator2D(const std::string& filename) {
     }
 
     std::string line;
+
     while (std::getline(file, line)) {
-        input.emplace_back(line.begin(), line.end());
+        std::istringstream iss(line);
+        double num;
+        std::vector<double> buff {};
+        while (iss >> num) {
+            buff.emplace_back(num);
+        }
+        input.emplace_back(buff);
     }
     Nsrc = input.size();
 }

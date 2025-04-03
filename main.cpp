@@ -5,6 +5,15 @@
 int main() {
     Interpolator2D interpolator2D(R"(C:\Users\user\CLionProjects\2DInterpolation\map)");
 
+
+
+    for (auto &v : interpolator2D.input) {
+        for (auto &w : v) {
+            std::cout << w << " ";
+        }
+        std::cout << std::endl;
+    }
+
     interpolator2D.Bilinear(5);
 
     std::fstream file("output.txt");
