@@ -2,27 +2,34 @@
 #define INTERPOLATOR2D_H
 #include <string>
 #include <vector>
+#include <iostream>
 
 #define max_line_size 256
 
+class Parser {
+public:
+    Parser() = default;
+    ~Parser() = default;
+
+    static std::vector<std::vector<double>> get_data(std::ifstream& stream);
+};
+
 class Interpolator2D {
 public:
-    Interpolator2D();
-    Interpolator2D(const std::string& filename);
+    explicit Interpolator2D(std::vector<std::vector<double>>&& in) : input(std::move(in)) {} // move semantic
     ~Interpolator2D();
 
-    std::vector<std::vector<double>> output = {};
     size_t padding = 0;
     double pad_fill = 0;
 
     void Bilinear(size_t Ndst);
-    void Bicubic();
+    void Bicubic(size_t Ndst);
 
-    void save_result(const std::string& filename);
-
-    std::vector<std::vector<double>> input= {};
-    size_t Nsrc = 0;
-
+    void save_result(std::ofstream& stream);
+private:
+    std::vector<std::vector<double>> input;
+    std::vector<std::vector<double>> output = {};
 };
+
 
 #endif //INTERPOLATOR2D_H

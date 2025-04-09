@@ -18,10 +18,16 @@ int main(int argc, char *argv[])
     }
 
     try {
-        Interpolator2D interpolator2D(input_fn);
+        Parser parser;
+        std::ifstream in_stream(input_fn, std::ifstream::in);
+        Interpolator2D interpolator2D(parser.get_data(in_stream));
+        in_stream.close();
 
         interpolator2D.Bilinear(Ndst);
-        interpolator2D.save_result(output_fn);
+        std::ofstream out_stream(output_fn, std::ofstream::out);
+        interpolator2D.save_result(out_stream);
+        out_stream.close();
+
     } catch (std::exception &e) {
         std::cout << e.what() << std::endl;
         return -1;

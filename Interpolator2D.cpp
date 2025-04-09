@@ -7,17 +7,90 @@
 #include <ostream>
 #include <sstream>
 
-Interpolator2D::Interpolator2D() = default;
 
-Interpolator2D::Interpolator2D(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("ERROR! can`t open file: " + filename);
+using namespace std;
+
+// Функция для билинейной интерполяции одного значения
+double bilinearInterpolate(const vector<vector<double>>& input,
+                             double x, double y)
+{
+    int N = input.size();
+
+    // Индексы узлов
+    int x0 = floor(x);
+    int y0 = floor(y);
+    // Обеспечим, чтобы не выйти за границы массива
+    int x1 = min(x0 + 1, N - 1);
+    int y1 = min(y0 + 1, N - 1);
+
+    // Дробные части
+    double t = x - x0;
+    double u = y - y0;
+
+    // Получаем значения в узловых точках
+    double f00 = input[x0][y0];
+    double f10 = input[x1][y0];
+    double f01 = input[x0][y1];
+    double f11 = input[x1][y1];
+
+    // Применяем формулу билинейной интерполяции
+    double result = f00 * (1 - t) * (1 - u) +
+                    f10 * t * (1 - u) +
+                    f01 * (1 - t) * u +
+                    f11 * t * u;
+    return result;
+}
+
+vector<vector<double>> AreaAveraging(const vector<vector<double>>& input, vector<vector<double>>& output, int n) {
+    int N = input.size();
+    double ratio = static_cast<double>(N) / n; // отношение размеров
+
+    for (int i = 0; i < n; ++i) {
+        // Границы области по x во входном массиве для пикселя i выходного массива
+        double x_start = i * ratio;
+        double x_end = (i + 1) * ratio;
+
+        for (int j = 0; j < n; ++j) {
+            // Границы области по y во входном массиве
+            double y_start = j * ratio;
+            double y_end = (j + 1) * ratio;
+
+            double sum = 0.0;
+            double totalArea = ratio * ratio; // общая площадь области
+
+            // Определяем диапазон входных индексов, затронутых этой областью
+            int p0 = floor(x_start);
+            int p1 = min(N - 1, static_cast<int>(ceil(x_end)));
+            int q0 = floor(y_start);
+            int q1 = min(N - 1, static_cast<int>(ceil(y_end)));
+
+            // Проходим по всем входным пикселям, которые частично или полностью попадают в область
+            for (int p = p0; p < p1; ++p) {
+                // Вычисляем перекрытие по x
+                double overlapX = max(0.0, min(x_end, static_cast<double>(p + 1)) - max(x_start, static_cast<double>(p)));
+                for (int q = q0; q < q1; ++q) {
+                    // Вычисляем перекрытие по y
+                    double overlapY = max(0.0, min(y_end, static_cast<double>(q + 1)) - max(y_start, static_cast<double>(q)));
+                    double weight = overlapX * overlapY;
+                    sum += input[p][q] * weight;
+                }
+            }
+
+            output[i][j] = sum / totalArea;
+        }
     }
 
-    std::string line;
+    return output;
+}
 
-    while (std::getline(file, line)) {
+std::vector<std::vector<double>> Parser::get_data(std::ifstream &stream) {
+    if (!stream.is_open()) {
+        std::cerr << "Parser got wrong stream" << std::endl;
+    }
+    std::string line;
+    std::vector<std::vector<double>> input;
+
+    while (std::getline(stream, line)) {
         std::istringstream iss(line);
         double num;
         std::vector<double> buff {};
@@ -27,7 +100,7 @@ Interpolator2D::Interpolator2D(const std::string& filename) {
         input.emplace_back(buff);
     }
     // Проверка размеров сетки
-    Nsrc = input.size();
+    int Nsrc = input.size();
 
     for (auto &v : input) {
         if (v.size() != Nsrc) {
@@ -35,63 +108,56 @@ Interpolator2D::Interpolator2D(const std::string& filename) {
         }
     }
 
+    return input;
+
 }
 
 Interpolator2D::~Interpolator2D() = default;
 
-void Interpolator2D::Bilinear(size_t Ndst) {
-    if (Ndst == 0) {
+void Interpolator2D::Bilinear(size_t n) {
+    if (n == 0) {
         return;
     }
-    output.resize(Ndst);
+    output.resize(n);
     for (auto &v: output) {
-        v.resize(Ndst);
+        v.resize(n);
     }
 
-    for (int y = 0; y < Ndst; ++y) {
-        for (int x = 0; x < Ndst; ++x) {
-            double srcX = (static_cast<double>(x) / static_cast<double>(Ndst)) * static_cast<double>(Nsrc);
-            double srcY = (static_cast<double>(y) / static_cast<double>(Ndst)) * static_cast<double>(Nsrc);
+    double N = input.size();
 
-            int x1 = static_cast<int>(std::floor(srcX));
-            int y1 = static_cast<int>(std::floor(srcY));
-            int x2 = std::min(x1 + 1, static_cast<int>(Nsrc) - 1);
-            int y2 = std::min(y1 + 1, static_cast<int>(Nsrc) - 1);
+    if (n > N) {
+        // Вычисляем масштаб (с учетом индексации от 0)
+        double scale = static_cast<double>(N - 1) / (n - 1);
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                // Сопоставляем координаты в выходном массиве с координатами в исходном
+                double x = i * scale;
+                double y = j * scale;
 
-            double dx = srcX - static_cast<double>(x1);
-            double dy = srcY - static_cast<double>(y1);
-
-            double Q11 = input[y1][x1];
-            double Q12 = input[y2][x1];
-            double Q21 = input[y1][x2];
-            double Q22 = input[y2][x2];
-
-            double interpolatedValue = (1 - dx) * (1 - dy) * Q11 +
-                                      (1 - dx) * dy * Q12 +
-                                      dx * (1 - dy) * Q21 +
-                                      dx * dy * Q22;
-
-            output[y][x] = interpolatedValue;
+                // Выполняем билинейную интерполяцию для получения значения
+                output[i][j] = bilinearInterpolate(input, x, y);
+            }
         }
+    } else if (n < N) {
+        AreaAveraging(input, output, n);
+    } else if (n == N) {
+        output = input;
     }
-
-
 }
 
-void Interpolator2D::Bicubic() {
+void Interpolator2D::Bicubic(size_t Ndst) {
 }
 
-void Interpolator2D::save_result(const std::string &filename) {
-    std::fstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("ERROR! can`t open/create file: " + filename);
+void Interpolator2D::save_result(std::ofstream &stream) {
+    if (!stream.is_open()) {
+        throw std::runtime_error("ERROR! can`t save file:");
     }
     for (auto &v : output) {
         for (auto &w : v) {
-            file << w << " ";
+            stream << w << " ";
         }
-        file << std::endl;
+        stream << std::endl;
     }
-    file.close();
+    stream.close();
 }
 
