@@ -10,9 +10,7 @@
 
 using namespace std;
 
-// Функция для билинейной интерполяции одного значения
-double bilinearInterpolate(const vector<vector<double>>& input,
-                             double x, double y)
+double bilinearInterpolate(const vector<vector<double>>& input, double x, double y)
 {
     int N = input.size();
 
@@ -41,46 +39,21 @@ double bilinearInterpolate(const vector<vector<double>>& input,
     return result;
 }
 
-vector<vector<double>> AreaAveraging(const vector<vector<double>>& input, vector<vector<double>>& output, int n) {
+void AreaAveraging(const vector<vector<double>>& input, vector<vector<double>>& output, int n) {
     int N = input.size();
-    double ratio = static_cast<double>(N) / n; // отношение размеров
+    int blockSize = N / n;
 
     for (int i = 0; i < n; ++i) {
-        // Границы области по x во входном массиве для пикселя i выходного массива
-        double x_start = i * ratio;
-        double x_end = (i + 1) * ratio;
-
         for (int j = 0; j < n; ++j) {
-            // Границы области по y во входном массиве
-            double y_start = j * ratio;
-            double y_end = (j + 1) * ratio;
-
             double sum = 0.0;
-            double totalArea = ratio * ratio; // общая площадь области
-
-            // Определяем диапазон входных индексов, затронутых этой областью
-            int p0 = floor(x_start);
-            int p1 = min(N - 1, static_cast<int>(ceil(x_end)));
-            int q0 = floor(y_start);
-            int q1 = min(N - 1, static_cast<int>(ceil(y_end)));
-
-            // Проходим по всем входным пикселям, которые частично или полностью попадают в область
-            for (int p = p0; p < p1; ++p) {
-                // Вычисляем перекрытие по x
-                double overlapX = max(0.0, min(x_end, static_cast<double>(p + 1)) - max(x_start, static_cast<double>(p)));
-                for (int q = q0; q < q1; ++q) {
-                    // Вычисляем перекрытие по y
-                    double overlapY = max(0.0, min(y_end, static_cast<double>(q + 1)) - max(y_start, static_cast<double>(q)));
-                    double weight = overlapX * overlapY;
-                    sum += input[p][q] * weight;
+            for (int bi = 0; bi < blockSize; ++bi) {
+                for (int bj = 0; bj < blockSize; ++bj) {
+                    sum += input[i * blockSize + bi][j * blockSize + bj];
                 }
             }
-
-            output[i][j] = sum / totalArea;
+            output[i][j] = sum / (blockSize * blockSize);
         }
     }
-
-    return output;
 }
 
 std::vector<std::vector<double>> Parser::get_data(std::ifstream &stream) {
