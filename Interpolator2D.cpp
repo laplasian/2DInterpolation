@@ -12,7 +12,7 @@ using namespace std;
 
 double bilinearInterpolate(const vector<vector<double>>& input, double x, double y)
 {
-    int N = input.size();
+    int N = static_cast<int>(input.size());
 
     // Индексы узлов
     int x0 = floor(x);
@@ -40,7 +40,7 @@ double bilinearInterpolate(const vector<vector<double>>& input, double x, double
 }
 
 void AreaAveraging(const vector<vector<double>>& input, vector<vector<double>>& output, int n) {
-    int N = input.size();
+    int N = static_cast<int>(input.size());
     int blockSize = N / n;
 
     for (int i = 0; i < n; ++i) {
@@ -58,22 +58,16 @@ void AreaAveraging(const vector<vector<double>>& input, vector<vector<double>>& 
 
 std::vector<std::vector<double>> Parser::get_data(std::ifstream &stream) {
     if (!stream.is_open()) {
-        std::cerr << "Parser got wrong stream" << std::endl;
+        std::cerr << "Parser got wrong ifstream" << std::endl;
     }
     std::string line;
     std::vector<std::vector<double>> input;
 
     while (std::getline(stream, line)) {
-        std::istringstream iss(line);
-        double num;
-        std::vector<double> buff {};
-        while (iss >> num) {
-            buff.emplace_back(num);
-        }
-        input.emplace_back(buff);
+        input.emplace_back(get_next(line));
     }
     // Проверка размеров сетки
-    int Nsrc = input.size();
+    int Nsrc = static_cast<int>(input.size());
 
     for (auto &v : input) {
         if (v.size() != Nsrc) {
@@ -83,6 +77,36 @@ std::vector<std::vector<double>> Parser::get_data(std::ifstream &stream) {
 
     return input;
 
+}
+
+std::vector<std::vector<double>> Parser::get_data(std::stringstream &stream) {
+    if (!stream.good()) {
+        std::cerr << "Parser got wrong stringstream" << std::endl;
+    }
+    std::string line;
+    std::vector<std::vector<double>> input;
+
+    while (std::getline(stream, line)) {
+        input.emplace_back(get_next(line));
+    }
+    int Nsrc = static_cast<int>(input.size());
+
+    for (auto &v : input) {
+        if (v.size() != Nsrc) {
+            throw std::runtime_error("ERROR! wrong grid dimension: " + std::to_string(Nsrc) + " != " + std::to_string(v.size()));
+        }
+    }
+    return input;
+}
+
+std::vector<double> Parser::get_next(const std::string& line) {
+    std::istringstream iss(line);
+    double num;
+    std::vector<double> buff {};
+    while (iss >> num) {
+        buff.emplace_back(num);
+    }
+    return buff;
 }
 
 Interpolator2D::~Interpolator2D() = default;
@@ -100,7 +124,7 @@ void Interpolator2D::Bilinear(size_t n) {
 
     if (n > N) {
         // Вычисляем масштаб (с учетом индексации от 0)
-        double scale = static_cast<double>(N - 1) / (n - 1);
+        double scale = static_cast<double>(N - 1) / (static_cast<int>(n) - 1);
         for (int i = 0; i < n; ++i) {
             for (int j = 0; j < n; ++j) {
                 // Сопоставляем координаты в выходном массиве с координатами в исходном
@@ -132,5 +156,18 @@ void Interpolator2D::save_result(std::ofstream &stream) {
         stream << std::endl;
     }
     stream.close();
+}
+
+void Interpolator2D::save_result(std::stringstream &stream) {
+    if (!stream.good()) {
+        throw std::runtime_error("ERROR! can`t save file:");
+    }
+    for (auto &v : output) {
+        for (auto &w : v) {
+            stream << w << " ";
+        }
+        stream << std::endl;
+    }
+    stream.clear();
 }
 
