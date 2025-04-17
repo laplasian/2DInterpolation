@@ -47,8 +47,8 @@ double Interpolator2D::biqubic(const std::vector<std::vector<double>> &input, do
     int N = static_cast<int>(input.size());
 
     // Ограничиваем x и y, чтобы не выйти за допустимые границы
-    x = std::max(1.0, std::min(x, static_cast<double>(N - 3)));
-    y = std::max(1.0, std::min(y, static_cast<double>(N - 3)));
+    x = std::max(1.0, std::min(x, static_cast<double>(N)));
+    y = std::max(1.0, std::min(y, static_cast<double>(N)));
 
     int x1 = static_cast<int>(x);
     int y1 = static_cast<int>(y);
@@ -58,31 +58,29 @@ double Interpolator2D::biqubic(const std::vector<std::vector<double>> &input, do
     double col[4];
 
     for (int i = -1; i <= 2; ++i) {
-        double p0 = input[x1 + i][y1 - 1];
-        double p1 = input[x1 + i][y1];
-        double p2 = input[x1 + i][y1 + 1];
-        double p3 = input[x1 + i][y1 + 2];
-        col[i + 1] = cubic(p0, p1, p2, p3, ty);
+        double p0 = 0;
+        double p1 = 0;
+        double p2 = 0;
+        double p3 = 0;
+        if (x1 + i < N) {
+            if (y1 - 1 < N) {
+                p0 = input[x1 + i][y1 - 1];
+            } else p0 = 0;
+            if (y1 < N) {
+                p1 = input[x1 + i][y1];
+            } else p1 = 0;
+            if (y1 + 1 < N) {
+                p2 = input[x1 + i][y1 + 1];
+            } else p2 = 0;
+            if (y1 + 2 < N) {
+                p3 = input[x1 + i][y1 + 2];
+            } else p3 = 0;
+            col[i + 1] = cubic(p0, p1, p2, p3, ty);
+        }
+
     }
 
     return cubic(col[0], col[1], col[2], col[3], tx);
-}
-
-static void AreaAveraging(const vector<vector<double>>& input, vector<vector<double>>& output, int n) {
-    int N = static_cast<int>(input.size());
-    int blockSize = N / n;
-
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            double sum = 0.0;
-            for (int bi = 0; bi < blockSize; ++bi) {
-                for (int bj = 0; bj < blockSize; ++bj) {
-                    sum += input[i * blockSize + bi][j * blockSize + bj];
-                }
-            }
-            output[i][j] = sum / (blockSize * blockSize);
-        }
-    }
 }
 
 std::vector<std::vector<double>> Parser::get_data(std::istream &stream) {
@@ -100,6 +98,10 @@ std::vector<std::vector<double>> Parser::get_data(std::istream &stream) {
         Nsrc = static_cast<int>(input.back().size());
     }
 
+    if (Nsrc == 0 || input.back().size() != Nsrc) {
+        throw std::runtime_error("ERROR! wrong grid dimension");
+    }
+
     return input;
 }
 
@@ -115,16 +117,22 @@ std::vector<double> Parser::get_next(const std::string& line) {
 
 Interpolator2D::~Interpolator2D() = default;
 
-void Interpolator2D::Interpolate(size_t n, double (*interpolate)(const vector<vector<double>>& input, double x, double y)) {
-    if (n == 0) {
+void Interpolator2D::Interpolate(size_t n, size_t i_type) {
+    InternalInterpolate(n, InterpolationFunction[i_type]);
+}
+
+void Interpolator2D::InternalInterpolate(size_t n, double (*interpolate)(const vector<vector<double>>& input, double x, double y)) {
+    size_t N = input.size();
+
+    if (n == 0 || n < N) {
         return;
     }
+
     output.resize(n);
+
     for (auto &v: output) {
         v.resize(n);
     }
-
-    size_t N = input.size();
 
     if (n > N) {
         // Вычисляем масштаб (с учетом индексации от 0)
@@ -139,8 +147,6 @@ void Interpolator2D::Interpolate(size_t n, double (*interpolate)(const vector<ve
                 output[i][j] = interpolate(input, x, y);
             }
         }
-    } else if (n < N) {
-        AreaAveraging(input, output, n);
     } else if (n == N) {
         output = input;
     }
