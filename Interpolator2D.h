@@ -8,12 +8,9 @@
 
 class Parser {
 public:
-    Parser() = default;
-    ~Parser() = default;
-
-
-    static std::vector<std::vector<double>> get_data(std::ifstream& stream);
-    static std::vector<std::vector<double>> get_data(std::stringstream& stream);
+    Parser() = delete;
+    static std::vector<std::vector<double>> get_data(std::istream& stream);
+private:
     static std::vector<double> get_next(const std::string& line);
 
 };
@@ -23,15 +20,18 @@ public:
     explicit Interpolator2D(std::vector<std::vector<double>>&& in) : input(std::move(in)) {} // move semantic
     ~Interpolator2D();
 
-    void Bilinear(size_t Ndst);
-    void Bicubic(size_t Ndst);
+    void Interpolate(size_t n, double (*interpolate)(const std::vector<std::vector<double>> &input, double x, double y));
 
-    void save_result(std::ofstream& stream);
-    void save_result(std::stringstream& stream);
+    static double bilinear(const std::vector<std::vector<double>>& input, double x, double y);
+    static double biqubic(const std::vector<std::vector<double>>& input, double x, double y);
+
+    const std::vector<std::vector<double>>& get_result() const;
+
 private:
     std::vector<std::vector<double>> input;
     std::vector<std::vector<double>> output = {};
 };
 
+void save_result(std::ostream& stream, const std::vector<std::vector<double>> & data);
 
 #endif //INTERPOLATOR2D_H

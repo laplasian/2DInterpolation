@@ -2,99 +2,108 @@
 #include "Interpolator2D.h"
 
 int main(int argc, char **argv) {
-    testing::InitGoogleTest(&argc, argv);
+    ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
 
-TEST(Parser, TestParser) {
-    std::stringstream s_input;
-    s_input << "1 1 2 2 3 3" << std::endl <<
-               "1 1 2 2 3 3" << std::endl <<
-               "2 2 4 4 6 6" << std::endl <<
-               "2 2 4 4 6 6" << std::endl <<
-               "1 1 2 2 0 3" << std::endl <<
-               "1 1 2 2 4 4" << std::endl;
+// TEST Parser
 
-    static std::vector<std::vector<double>> data = Parser::get_data(s_input);
-
-
-    double expected_data[6][6] = {{1, 1, 2, 2, 3, 3},
-                                    {1, 1, 2, 2, 3, 3},
-                                    {2, 2, 4, 4, 6, 6},
-                                    {2, 2, 4, 4, 6, 6},
-                                    {1, 1, 2, 2, 0, 3},
-                                    {1, 1, 2, 2, 4, 4}};
-
-    for (int i = 0; i < 6; i++) {
-        for (int j = 0; j < 6; j++) {
-            EXPECT_EQ(expected_data[i][j], data[i][j]);
-        }
-    }
-    s_input.clear();
+TEST(Parser, ValidGrid) {
+    std::istringstream input("1 2 3\n4 5 6\n7 8 9\n");
+    std::vector<std::vector<double>> expected = {
+        {1,2,3},
+        {4,5,6},
+        {7,8,9}
+    };
+    EXPECT_EQ(Parser::get_data(input), expected);
 }
 
-TEST(Interpolator2D, DownScale) {
-    std::stringstream s_input;
-    s_input << "1 1 2 2 3 3" << std::endl <<
-               "1 1 2 2 3 3" << std::endl <<
-               "2 2 4 4 6 6" << std::endl <<
-               "2 2 4 4 6 6" << std::endl <<
-               "1 1 2 2 3 3" << std::endl <<
-               "1 1 2 2 3 3" << std::endl;
-
-    Interpolator2D ip {Parser::get_data(s_input)};
-    ip.Bilinear(3);
-
-    std::stringstream result;
-    ip.save_result(result);
-
-    std::string line;
-    getline(result, line);
-    EXPECT_EQ(line, "1 2 3 ");
-    getline(result, line);
-    EXPECT_EQ(line, "2 4 6 ");
-    getline(result, line);
-    EXPECT_EQ(line, "1 2 3 ");
+TEST(Parser, EmptyInput) {
+    std::istringstream input("");
+    std::vector<std::vector<double>> expected = {};
+    EXPECT_EQ(Parser::get_data(input), expected);
 }
 
-TEST(Interpolator2D, UpScale) {
-    std::stringstream s_input;
-    s_input << "2 4" << std::endl <<
-               "6 8" << std::endl;
+TEST(Parser, MismatchedRowSizesThrows) {
+    std::istringstream input("1 2\n3 4 5\n");
+    EXPECT_THROW(Parser::get_data(input), std::runtime_error);
+}
 
-    Interpolator2D ip {Parser::get_data(s_input)};
-    ip.Bilinear(3);
+// TEST Interpolator
 
-    std::stringstream result;
-    ip.save_result(result);
+TEST(Interpolator2D, UpscaleWithBilinear) {
+    std::istringstream input("0 10\n20 30\n");
+    std::vector<std::vector<double>> expected = {
+        {0, 5, 10},
+        {10, 15, 20},
+        {20, 25, 30}
+    };
 
-    std::string line;
-    getline(result, line);
-    EXPECT_EQ(line, "2 3 4 ");
-    getline(result, line);
-    EXPECT_EQ(line, "4 5 6 ");
-    getline(result, line);
-    EXPECT_EQ(line, "6 7 8 ");
-    getline(result, line);
+    Interpolator2D interpolator(Parser::get_data(input));
+    interpolator.Interpolate(3, Interpolator2D::bilinear);
+    EXPECT_EQ(interpolator.get_result(), expected);
+}
+
+TEST(Interpolator2D, UpscaleWithBiqubic) {
+    std::istringstream input("1 1 1 1\n1 1 1 1\n1 1 1 1 \n1 1 1 1\n");
+    std::vector<std::vector<double>> expected = {
+        {1, 1, 1},
+        {1, 1, 1},
+        {1, 1, 1}
+    };
+
+    Interpolator2D interpolator(Parser::get_data(input));
+    interpolator.Interpolate(3, Interpolator2D::biqubic);
+    EXPECT_EQ(interpolator.get_result(), expected);
+}
+
+TEST(Interpolator2D, DownscaleWithAreaAverage) {
+    std::istringstream input("1 2 3 4\n5 6 7 8\n9 10 11 12\n13 14 15 16\n");
+    std::vector<std::vector<double>> expected = {
+        {3.5, 5.5},
+        {11.5, 13.5}
+    };
+
+    Interpolator2D interpolator(Parser::get_data(input));
+    interpolator.Interpolate(2, Interpolator2D::bilinear);
+    EXPECT_EQ(interpolator.get_result(), expected);
 }
 
 TEST(Interpolator2D, SameScale) {
-    std::stringstream s_input;
-    s_input << "1 2 3" << std::endl <<
-               "1 1 1" << std::endl <<
-               "3 2 1" << std::endl;
+    std::istringstream input("1 2\n3 4\n");
+    std::vector<std::vector<double>> expected = {
+        {1, 2},
+        {3, 4}
+    };
 
-    Interpolator2D ip {Parser::get_data(s_input)};
-    ip.Bilinear(3);
-
-    std::stringstream result;
-    ip.save_result(result);
-
-    std::string line;
-    getline(result, line);
-    EXPECT_EQ(line, "1 2 3 ");
-    getline(result, line);
-    EXPECT_EQ(line, "1 1 1 ");
-    getline(result, line);
-    EXPECT_EQ(line, "3 2 1 ");
+    Interpolator2D interpolator(Parser::get_data(input));
+    interpolator.Interpolate(2, Interpolator2D::bilinear);
+    EXPECT_EQ(interpolator.get_result(), expected);
 }
+
+
+TEST(SaveResult, OutputMatchesExpected) {
+    std::vector<std::vector<double>> data = {{1.1, 2.2}, {3.3, 4.4}};
+    std::ostringstream out;
+    save_result(out, data);
+
+    std::string expected = "1.1 2.2 \n3.3 4.4 \n";
+    EXPECT_EQ(out.str(), expected);
+}
+
+TEST(SaveResult, BadStreamThrows) {
+    std::vector<std::vector<double>> data = {{1}};
+    std::ostringstream out;
+    out.setstate(std::ios::badbit);
+    EXPECT_THROW(save_result(out, data), std::runtime_error);
+}
+
+
+TEST(Interpolator2D, InterpolateZeroSize) {
+    std::istringstream input("1 2\n3 4\n");
+    Interpolator2D interpolator(Parser::get_data(input));
+    interpolator.Interpolate(0, Interpolator2D::bilinear);
+    EXPECT_TRUE(interpolator.get_result().empty());
+}
+
+
