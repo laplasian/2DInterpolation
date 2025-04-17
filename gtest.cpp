@@ -20,12 +20,16 @@ TEST(Parser, ValidGrid) {
 
 TEST(Parser, EmptyInput) {
     std::istringstream input("");
-    std::vector<std::vector<double>> expected = {};
-    EXPECT_EQ(Parser::get_data(input), expected);
+    EXPECT_THROW(Parser::get_data(input), std::runtime_error);
 }
 
 TEST(Parser, MismatchedRowSizesThrows) {
     std::istringstream input("1 2\n3 4 5\n");
+    EXPECT_THROW(Parser::get_data(input), std::runtime_error);
+}
+
+TEST(Parser, InvalidGrid) {
+    std::istringstream input("1 a 3\n4 5 6\n7 b 9\n");
     EXPECT_THROW(Parser::get_data(input), std::runtime_error);
 }
 
@@ -40,33 +44,31 @@ TEST(Interpolator2D, UpscaleWithBilinear) {
     };
 
     Interpolator2D interpolator(Parser::get_data(input));
-    interpolator.Interpolate(3, Interpolator2D::bilinear);
+    interpolator.Interpolate(3, BILINEAR);
     EXPECT_EQ(interpolator.get_result(), expected);
 }
 
 TEST(Interpolator2D, UpscaleWithBiqubic) {
-    std::istringstream input("1 1 1 1\n1 1 1 1\n1 1 1 1 \n1 1 1 1\n");
+    std::istringstream input("1 1 1 1\n2 2 2 2\n3 3 3 3\n4 4 4 4\n");
     std::vector<std::vector<double>> expected = {
-        {1, 1, 1},
-        {1, 1, 1},
-        {1, 1, 1}
-    };
+        { 2, 2, 2, 2, 2.096, 2 },
+        { 2, 2, 2, 2, 2.096, 2 },
+        { 2.2, 2.2, 2.2, 2.2, 2.3056, 2.2 },
+        { 2.8, 2.8, 2.8, 2.8, 2.9344, 2.8 },
+        { 3.448, 3.448, 3.448, 3.448, 3.62272, 3.448 },
+        { 4, 4, 4, 4, 4.192, 4 } };
 
     Interpolator2D interpolator(Parser::get_data(input));
-    interpolator.Interpolate(3, Interpolator2D::biqubic);
+    interpolator.Interpolate(6, BICUBIC);
     EXPECT_EQ(interpolator.get_result(), expected);
 }
 
-TEST(Interpolator2D, DownscaleWithAreaAverage) {
-    std::istringstream input("1 2 3 4\n5 6 7 8\n9 10 11 12\n13 14 15 16\n");
-    std::vector<std::vector<double>> expected = {
-        {3.5, 5.5},
-        {11.5, 13.5}
-    };
+TEST(Interpolator2D, Downscale) {
+    std::istringstream input("1 1 1 1 1\n2 2 2 2 2\n3 3 3 3 3\n4 4 4 4 4\n5 5 5 5 5\n");
 
     Interpolator2D interpolator(Parser::get_data(input));
-    interpolator.Interpolate(2, Interpolator2D::bilinear);
-    EXPECT_EQ(interpolator.get_result(), expected);
+    interpolator.Interpolate(4, BICUBIC);
+    EXPECT_THROW(Parser::get_data(input), std::runtime_error);
 }
 
 TEST(Interpolator2D, SameScale) {
@@ -77,7 +79,7 @@ TEST(Interpolator2D, SameScale) {
     };
 
     Interpolator2D interpolator(Parser::get_data(input));
-    interpolator.Interpolate(2, Interpolator2D::bilinear);
+    interpolator.Interpolate(2, BILINEAR);
     EXPECT_EQ(interpolator.get_result(), expected);
 }
 
@@ -102,7 +104,7 @@ TEST(SaveResult, BadStreamThrows) {
 TEST(Interpolator2D, InterpolateZeroSize) {
     std::istringstream input("1 2\n3 4\n");
     Interpolator2D interpolator(Parser::get_data(input));
-    interpolator.Interpolate(0, Interpolator2D::bilinear);
+    interpolator.Interpolate(0, BILINEAR);
     EXPECT_TRUE(interpolator.get_result().empty());
 }
 
