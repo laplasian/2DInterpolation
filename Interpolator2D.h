@@ -5,6 +5,7 @@
 #include <iostream>
 
 #define max_line_size 256
+#define ESP 0.1
 
 class Parser {
 public:
@@ -15,36 +16,29 @@ private:
 
 };
 
-typedef double (*interpolation_function)(const std::vector<std::vector<double>> &input, double x, double y);
+enum class InterpolationType {
+    BILINEAR,
+    BICUBIC
+};
 
 class Interpolator2D {
 public:
     explicit Interpolator2D(std::vector<std::vector<double>>&& in) : input(std::move(in)) {} // move semantic
     ~Interpolator2D();
 
-    void Interpolate(size_t n, size_t i_type);
+    void Interpolate(size_t n, InterpolationType type);
     const std::vector<std::vector<double>>& get_result() const;
+
+private:
+    typedef double (*interpolation_function)(const std::vector<std::vector<double>> &input, double x, double y);
+
+    void InternalInterpolate(size_t n, interpolation_function);
 
     static double bilinear(const std::vector<std::vector<double>>& input, double x, double y);
     static double biqubic(const std::vector<std::vector<double>>& input, double x, double y);
 
-private:
-    void InternalInterpolate(size_t n, interpolation_function);
-
-
     std::vector<std::vector<double>> input;
     std::vector<std::vector<double>> output = {};
-};
-
-enum InterpolationFunctionID {
-    BILINEAR,
-    BICUBIC,
-    COUNT
-};
-
-inline interpolation_function InterpolationFunction[] = {
-    Interpolator2D::bilinear,
-    Interpolator2D::biqubic
 };
 
 void save_result(std::ostream& stream, const std::vector<std::vector<double>> & data);

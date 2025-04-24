@@ -14,10 +14,6 @@ int main(int argc, char *argv[])
         output_fn = argv[2];
         Ndst = static_cast<size_t>(strtol(argv[3], nullptr, 10));
         i_type = static_cast<size_t>(strtol(argv[4], nullptr, 10));
-        if (i_type >= COUNT) {
-            return -1;
-        };
-
     }
     else {
         printf("args error");
@@ -28,8 +24,7 @@ int main(int argc, char *argv[])
         std::ifstream in_stream(input_fn, std::ifstream::in);
         Interpolator2D interpolator(Parser::get_data(in_stream));
         in_stream.close();
-        //enum
-        interpolator.Interpolate(Ndst, i_type);
+        interpolator.Interpolate(Ndst, static_cast<InterpolationType>(i_type));//enum
         std::ofstream out_stream(output_fn, std::ostream::out);
         save_result(out_stream, interpolator.get_result());
         out_stream.close();

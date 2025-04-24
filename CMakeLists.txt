@@ -18,6 +18,7 @@ enable_testing()
 add_executable(2DInterpolation main.cpp
         Interpolator2D.cpp
         Interpolator2D.h
+        expects.h
 )
 
 add_executable(2DInterpolation_test
