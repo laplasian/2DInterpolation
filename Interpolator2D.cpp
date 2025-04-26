@@ -15,8 +15,8 @@ double Interpolator2D::bilinear(const std::vector<std::vector<double>> &input, d
     int N = static_cast<int>(input.size());
 
     // Индексы узлов
-    int x0 = floor(x);
-    int y0 = floor(y);
+    int x0 = static_cast<int>(floor(x));
+    int y0 = static_cast<int>(floor(y));
     // Обеспечим, чтобы не выйти за границы массива
     int x1 = min(x0 + 1, N - 1);
     int y1 = min(y0 + 1, N - 1);
@@ -116,6 +116,9 @@ void Interpolator2D::Interpolate(size_t n, InterpolationType type) {
         break;
         case InterpolationType::BICUBIC:
             InternalInterpolate(n, Interpolator2D::biqubic);
+        break;
+        default:
+            throw std::runtime_error("ERROR! wrong interpolation type");
         break;
     }
 }

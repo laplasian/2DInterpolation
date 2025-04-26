@@ -5,7 +5,6 @@
 #include <iostream>
 
 #define max_line_size 256
-#define ESP 0.1
 
 class Parser {
 public:
@@ -13,7 +12,6 @@ public:
     static std::vector<std::vector<double>> get_data(std::istream& stream);
 private:
     static std::vector<double> get_next(const std::string& line);
-
 };
 
 enum class InterpolationType {
