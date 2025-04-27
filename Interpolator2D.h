@@ -28,9 +28,7 @@ public:
     const std::vector<std::vector<double>>& get_result() const;
 
 private:
-    typedef double (*interpolation_function)(const std::vector<std::vector<double>> &input, double x, double y);
-
-    void InternalInterpolate(size_t n, interpolation_function);
+    void InternalInterpolate(size_t n, double (*interpolate)(const std::vector<std::vector<double>>& input, double x, double y));
 
     static double bilinear(const std::vector<std::vector<double>>& input, double x, double y);
     static double biqubic(const std::vector<std::vector<double>>& input, double x, double y);
